@@ -269,6 +269,86 @@
   let liters = 0;
   let storageOk = true;
 
+  // Storage wrapper: prefer window.storage, then localStorage, then IndexedDB
+  const DB_NAME = 'kettle-store';
+  const STORE_NAME = 'kv';
+
+  function idbOpen() {
+    return new Promise((resolve, reject) => {
+      if (!window.indexedDB) return reject(new Error('No IndexedDB'));
+      const req = indexedDB.open(DB_NAME, 1);
+      req.onupgradeneeded = (e) => {
+        const db = e.target.result;
+        if (!db.objectStoreNames.contains(STORE_NAME)) {
+          db.createObjectStore(STORE_NAME, { keyPath: 'k' });
+        }
+      };
+      req.onsuccess = (e) => resolve(e.target.result);
+      req.onerror = (e) => reject(e.target.error || new Error('IDB open error'));
+    });
+  }
+
+  function idbSet(key, value) {
+    return new Promise((resolve, reject) => {
+      idbOpen().then(db => {
+        const tx = db.transaction(STORE_NAME, 'readwrite');
+        const store = tx.objectStore(STORE_NAME);
+        store.put({ k: key, v: String(value) });
+        tx.oncomplete = () => { db.close(); resolve(); };
+        tx.onerror = (e) => { db.close(); reject(e.target?.error || new Error('IDB tx error')); };
+      }).catch(reject);
+    });
+  }
+
+  function idbGet(key) {
+    return new Promise((resolve, reject) => {
+      idbOpen().then(db => {
+        const tx = db.transaction(STORE_NAME, 'readonly');
+        const store = tx.objectStore(STORE_NAME);
+        const req = store.get(key);
+        req.onsuccess = (e) => { const r = e.target.result; db.close(); resolve(r ? r.v : null); };
+        req.onerror = (e) => { db.close(); reject(e.target?.error || new Error('IDB get error')); };
+      }).catch(reject);
+    });
+  }
+
+  const StorageAPI = {
+    async set(key, value) {
+      // prefer window.storage (original approach)
+      if (window.storage) {
+        try { await window.storage.set(key, String(value), false); return; } catch (e) { /* fallthrough */ }
+      }
+      // try localStorage
+      try {
+        localStorage.setItem(key, String(value));
+        return;
+      } catch (e) { /* fallthrough */ }
+      // try indexedDB
+      try {
+        await idbSet(key, String(value));
+        return;
+      } catch (e) { /* final fallback failed */ }
+      throw new Error('No persistent storage available');
+    },
+    async get(key) {
+      if (window.storage) {
+        try {
+          const res = await window.storage.get(key, false);
+          return res && res.value !== undefined ? res.value : null;
+        } catch (e) { /* fallthrough */ }
+      }
+      try {
+        const v = localStorage.getItem(key);
+        return v !== null ? v : null;
+      } catch (e) { /* fallthrough */ }
+      try {
+        const v = await idbGet(key);
+        return v !== null ? v : null;
+      } catch (e) { /* final fallback */ }
+      return null;
+    }
+  };
+
   function render(){
     const pct = Math.min(100, (liters / CAPACITY) * 100);
     water.style.height = pct + '%';
@@ -283,24 +363,27 @@
   }
 
   async function save(){
-    if(!storageOk || !window.storage) return;
+    if(!storageOk) return;
     try{
-      await window.storage.set(KEY, String(liters), false);
+      await StorageAPI.set(KEY, String(liters));
     }catch(e){
-      storageOk = false; // ukladanie tu nie je dostupné, pokračujeme len v pamäti
+      // mark storage unavailable so we don't keep trying every time
+      storageOk = false;
+      console.warn('Persistent storage not available:', e);
     }
   }
 
   async function load(){
-    if(!window.storage){ render(); return; }
     try{
-      const res = await window.storage.get(KEY, false);
-      if(res && res.value !== undefined && res.value !== null){
-        const n = Number(res.value);
+      const v = await StorageAPI.get(KEY);
+      if (v !== null && v !== undefined) {
+        const n = Number(v);
         if(!Number.isNaN(n)) liters = n;
       }
     }catch(e){
-      // žiadne uložené dáta zatiaľ, alebo storage tu nie je dostupný — začíname od 0
+      // storage not available or failed — we'll work in-memory
+      storageOk = false;
+      console.warn('Load from persistent storage failed:', e);
     }
     render();
   }
