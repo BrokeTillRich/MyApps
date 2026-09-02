@@ -38,14 +38,14 @@
   }
   .brand{
     text-align:center;
-    margin-bottom:26px;
+    margin:40px 0 26px; /* increased top spacing so the title sits lower on the screen */
   }
   .brand .mark{
-    font-size:100px;
-    letter-spacing:10px;
-    text-transform:uppercase;
+    font-size:28px; /* larger */
+    letter-spacing:2px;
+    text-transform:none; /* show the text as written (MyApps) instead of uppercase */
     color:var(--copper);
-    font-weight:1000;
+    font-weight:700;
   }
   .brand h1{
     margin:2px 0 0;
@@ -214,8 +214,8 @@
   }
 
   backBtn.addEventListener('click', () => {
-    // Let history handle it (will trigger popstate)
-    history.back();
+    // Close the app immediately (prevents needing to press twice for some iframes)
+    closeApp(true);
   });
 
   window.addEventListener('popstate', (e) => {
