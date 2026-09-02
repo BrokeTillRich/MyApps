@@ -412,11 +412,10 @@
   });
 
   // --- Back navigation fix for iOS / standalone mode ---
-  // Push a history entry for the kettle page so back button is available.
-  // When clicked, popstate navigates back to the menu.
+  // Replace current history entry with kettle state so back button navigates to menu.
   (function initBackNavigation(){
     try {
-      if (history && history.pushState) {
+      if (history && history.replaceState) {
         // Determine a safe menu URL: prefer same-origin referrer if available
         let MENU_URL = '/';
         try {
@@ -429,8 +428,8 @@
           // ignore
         }
 
-        // Push history entry so back button exists
-        history.pushState({ screen: 'kettle' }, '');
+        // Replace current history entry with 'kettle' state
+        history.replaceState({ screen: 'kettle' }, '');
 
         window.addEventListener('popstate', (e) => {
           location.href = MENU_URL;
