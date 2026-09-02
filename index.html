@@ -163,27 +163,96 @@
     const tile = document.createElement('button');
     tile.type = 'button';
     tile.className = 'tile';
+    tile.setAttribute('aria-label', app.name);
     tile.innerHTML = `<span class="emoji" aria-hidden="true">${app.emoji}</span><span class="name">${app.name}</span>`;
     tile.addEventListener('click', () => openApp(app));
     tileGrid.appendChild(tile);
   });
 
-  function openApp(app){
+  function normalizeHash(hash){
+    // remove leading slashes
+    return hash.replace(/^\/+/, '');
+  }
+
+  function findAppByPath(path){
+    if(!path) return null;
+    const normalized = normalizeHash(path);
+    return APPS.find(a => a.path === normalized || a.path === './' + normalized || a.path === '/' + normalized) || null;
+  }
+
+  function openApp(app, pushHistory = true){
     appTitle.textContent = app.name;
+    // Resolve relative path against current location so it works when served from a path
+    const base = location.pathname.replace(/\/[^\/]*$/, '/');
+    // If path is already absolute-ish, just assign
     appFrame.src = app.path;
     appScreen.classList.add('show');
-    history.pushState({ app: app.path }, '', '#' + app.path);
+
+    if(pushHistory){
+      // Push a state so the back button closes the app
+      history.pushState({ app: app.path }, '', '#' + encodeURIComponent(app.path));
+    } else {
+      // Replace state so we don't add a duplicate entry on load
+      history.replaceState({ app: app.path }, '', '#' + encodeURIComponent(app.path));
+    }
+
+    // focus iframe for keyboard users
+    setTimeout(() => {
+      try{ appFrame.focus(); } catch(e){}
+    }, 300);
   }
 
-  function closeApp(){
+  function closeApp(replace = true){
     appScreen.classList.remove('show');
     appFrame.src = 'about:blank';
-    if(location.hash) history.pushState({}, '', location.pathname);
+    appTitle.textContent = '';
+    if(replace){
+      // remove the hash without creating a new history entry
+      history.replaceState({}, '', location.pathname + location.search);
+    } else {
+      history.pushState({}, '', location.pathname + location.search);
+    }
   }
 
-  backBtn.addEventListener('click', () => history.back());
+  backBtn.addEventListener('click', () => {
+    // Let history handle it (will trigger popstate)
+    history.back();
+  });
+
   window.addEventListener('popstate', (e) => {
-    if(!e.state || !e.state.app){ closeApp(); }
+    // When the history changes, decide based on the current hash
+    const hash = decodeURIComponent(location.hash.slice(1) || '');
+    if(hash){
+      const app = findAppByPath(hash);
+      if(app){
+        openApp(app, false);
+        return;
+      }
+    }
+    // No valid hash -> close app
+    closeApp(true);
+  });
+
+  // On initial load, open an app if there's a hash
+  window.addEventListener('load', () => {
+    const hash = decodeURIComponent(location.hash.slice(1) || '');
+    if(hash){
+      const app = findAppByPath(hash);
+      if(app){
+        openApp(app, false);
+      } else {
+        // If hash does not match a known app, remove it
+        history.replaceState({}, '', location.pathname + location.search);
+      }
+    }
+  });
+
+  // keyboard: Escape closes the app when open
+  window.addEventListener('keydown', (e) => {
+    if(e.key === 'Escape' && appScreen.classList.contains('show')){
+      // remove hash and replace state
+      closeApp(true);
+    }
   });
 </script>
 </body>
