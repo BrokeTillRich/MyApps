@@ -223,7 +223,6 @@
   <div class="brand">
     <div class="kettle-mark">Kettle</div>
     <h1 id="litersTitle">0 L</h1>
-    <p>Nádoba 150&nbsp;L</p>
   </div>
 
   <div class="vessel-wrap">
@@ -430,18 +429,8 @@
           // ignore
         }
 
-        // Replace current state as 'menu' then push 'kettle' so back goes to 'menu'
-        history.replaceState({ screen: 'menu' }, '');
-        history.pushState({ screen: 'kettle' }, '');
-
         window.addEventListener('popstate', (e) => {
-          const state = e.state || {};
-          // When the user navigates back to the 'menu' state, go there.
-          if (state && state.screen === 'menu') {
-            // If the page was opened from another app/page (referrer), try navigating there first.
-            // Using location.href ensures the webapp exits standalone view back to the menu page.
-            location.href = MENU_URL;
-          }
+          location.href = MENU_URL;
         }, { passive: true });
       }
     } catch (err) {
