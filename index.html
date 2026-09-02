@@ -27,13 +27,14 @@
     font-family:-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
     color:var(--ink);
     min-height:100vh;
-    overflow:hidden;
   }
+  @media (prefers-reduced-motion: reduce){ *{ transition:none !important; } }
 
   /* ---------- Domovská obrazovka ---------- */
   #home{
     padding:env(safe-area-inset-top,28px) 20px calc(env(safe-area-inset-bottom,20px) + 12px);
     min-height:100vh;
+    overflow-y:auto;
   }
   .brand{
     text-align:center;
@@ -67,6 +68,7 @@
     padding:20px 14px;
     text-align:center;
     box-shadow:0 10px 24px rgba(0,0,0,0.35);
+    cursor:pointer;
   }
   .tile .emoji{
     font-size:32px;
@@ -99,6 +101,7 @@
     padding:calc(env(safe-area-inset-top,20px) + 6px) 14px 10px;
     background:var(--bg-top);
     border-bottom:1px solid var(--card-edge);
+    flex-shrink:0;
   }
   .back-btn{
     background:var(--card);
@@ -108,6 +111,7 @@
     font-weight:700;
     padding:8px 14px;
     border-radius:12px;
+    cursor:pointer;
   }
   .back-btn:active{ opacity:0.6; }
   .app-title{
@@ -120,6 +124,7 @@
     flex:1;
     border:none;
     width:100%;
+    overflow:auto;
   }
 </style>
 </head>
@@ -144,7 +149,7 @@
 <script>
   // Zoznam appiek — pridávaj sem ďalšie: { name, emoji, path }
   const APPS = [
-    { name: 'Kettle', emoji: '💧', path: 'kettle/index.html' },
+    { name: 'Kettle', emoji: '💧', path: 'Kettle/index.html' },
     { name: 'Hodinový log', emoji: '📝', path: 'hourly-log/index.html' },
   ];
 
