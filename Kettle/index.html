@@ -412,9 +412,13 @@
   });
 
   // --- Back navigation fix for iOS / standalone mode ---
-  // Replace current history entry with kettle state so back button navigates to menu.
+  // Do not modify history when running inside an iframe (embedded in MyApps).
+  // Only apply history tweaks when the page is running as a top-level document.
   (function initBackNavigation(){
     try {
+      // If we're inside an iframe, leave history handling to the parent app
+      if (window.self !== window.top) return;
+
       if (history && history.replaceState) {
         // Determine a safe menu URL: prefer same-origin referrer if available
         let MENU_URL = '/';
