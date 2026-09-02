@@ -412,6 +412,43 @@
     save();
   });
 
+  // --- Back navigation fix for iOS / standalone mode ---
+  // Ensure there's a previous history entry so the iOS back gesture/button goes somewhere.
+  // On popstate we navigate to a reasonable "menu" location (prefer same-origin document.referrer, fallback to '/').
+  (function initBackNavigation(){
+    try {
+      if (history && history.pushState) {
+        // Determine a safe menu URL: prefer same-origin referrer if available
+        let MENU_URL = '/';
+        try {
+          const ref = document.referrer;
+          if (ref) {
+            const u = new URL(ref, location.href);
+            if (u.origin === location.origin) MENU_URL = ref;
+          }
+        } catch (err) {
+          // ignore
+        }
+
+        // Replace current state as 'menu' then push 'kettle' so back goes to 'menu'
+        history.replaceState({ screen: 'menu' }, '');
+        history.pushState({ screen: 'kettle' }, '');
+
+        window.addEventListener('popstate', (e) => {
+          const state = e.state || {};
+          // When the user navigates back to the 'menu' state, go there.
+          if (state && state.screen === 'menu') {
+            // If the page was opened from another app/page (referrer), try navigating there first.
+            // Using location.href ensures the webapp exits standalone view back to the menu page.
+            location.href = MENU_URL;
+          }
+        }, { passive: true });
+      }
+    } catch (err) {
+      console.warn('History API not available or failed to init back navigation', err);
+    }
+  })();
+
   load();
 </script>
 </body>
