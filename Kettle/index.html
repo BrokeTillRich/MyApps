@@ -411,10 +411,31 @@
     save();
   });
 
+  // If the Kettle page is opened as the top-level entry (not in an iframe),
+  // redirect to the root so MyApps becomes the first landing page.
+  // This helps avoid people landing directly on /Kettle/ as the site entry.
+  if (window.self === window.top) {
+    try {
+      const p = location.pathname.replace(/\/+/g,'/');
+      if (p.endsWith('/Kettle') || p.endsWith('/Kettle/') || p.endsWith('/Kettle/index.html')) {
+        // Use replace so the redirect doesn't create an extra history entry.
+        location.replace('/');
+      }
+    } catch (err) {
+      // ignore
+    }
+  }
+
   // --- Back navigation fix for iOS / standalone mode ---
-  // Replace current history entry with kettle state so back button navigates to menu.
+  // Only install the history/popstate workaround when running as a standalone
+  // (PWA / iOS standalone) and when the document is not inside an iframe.
   (function initBackNavigation(){
     try {
+      if (window.self !== window.top) return; // don't touch parent history when inside iframe
+
+      const isStandalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone;
+      if (!isStandalone) return;
+
       if (history && history.replaceState) {
         // Determine a safe menu URL: prefer same-origin referrer if available
         let MENU_URL = '/';
@@ -428,11 +449,17 @@
           // ignore
         }
 
-        // Replace current history entry with 'kettle' state
-        history.replaceState({ screen: 'kettle' }, '');
+        // Replace current history entry with a labeled 'kettle' state but keep the current URL.
+        history.replaceState({ screen: 'kettle' }, '', location.pathname + location.search + location.hash);
 
         window.addEventListener('popstate', (e) => {
-          location.href = MENU_URL;
+          // Only handle popstate events that would attempt to navigate away from this state.
+          // Navigate to the menu URL when the user tries to go back.
+          try {
+            location.href = MENU_URL;
+          } catch (err) {
+            // ignore
+          }
         }, { passive: true });
       }
     } catch (err) {
