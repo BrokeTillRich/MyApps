@@ -412,8 +412,8 @@
   });
 
   // --- Back navigation fix for iOS / standalone mode ---
-  // Ensure there's a previous history entry so the iOS back gesture/button goes somewhere.
-  // On popstate we navigate to a reasonable "menu" location (prefer same-origin document.referrer, fallback to '/').
+  // Push a history entry for the kettle page so back button is available.
+  // When clicked, popstate navigates back to the menu.
   (function initBackNavigation(){
     try {
       if (history && history.pushState) {
@@ -428,6 +428,9 @@
         } catch (err) {
           // ignore
         }
+
+        // Push history entry so back button exists
+        history.pushState({ screen: 'kettle' }, '');
 
         window.addEventListener('popstate', (e) => {
           location.href = MENU_URL;
