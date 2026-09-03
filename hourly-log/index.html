@@ -39,11 +39,12 @@
   .back-btn{ position:absolute; left:0; top:0; background:var(--card); border:1px solid var(--card-edge); color:var(--ink); font-size:14px; font-weight:700; padding:8px 12px; border-radius:12px; }
   .back-btn:active{ opacity:0.6; }
 
-  .today-btn{ display:block; max-width:520px; margin:0 auto 18px; width:100%; padding:14px 0; border:none; border-radius:14px; background:linear-gradient(180deg, var(--copper), var(--copper-dim)); color:#fff; text-shadow:0 1px 2px rgba(0,0,0,0.35); font-size:16px; font-weight:800; }
+  .today-btn{ display:block; max-width:520px; margin:0 auto 18px; width:100%; padding:14px 0; border:none; border-radius:14px; background:linear-gradient(180deg, var(--copper), var(--copper-dim)); color:#fff; font-size:16px; font-weight:700; cursor:pointer; }
   .today-btn:active{ transform:scale(0.98); }
 
   .day-list{ max-width:520px; margin:0 auto; display:flex; flex-direction:column; gap:10px; }
-  .day-item{ background:var(--card); border:1px solid var(--card-edge); border-radius:14px; padding:14px 16px; display:flex; justify-content:space-between; align-items:center; text-align:left; width:100%; }
+  .day-item{ background:var(--card); border:1px solid var(--card-edge); border-radius:14px; padding:14px 16px; display:flex; justify-content:space-between; align-items:center; text-align:left; width:100%; cursor:pointer; }
+  .day-item:active{ opacity:0.8; }
   .day-item .d-date{ font-size:15px; font-weight:700; }
   .day-item .d-sub{ font-size:12px; color:var(--ink-dim); margin-top:2px; }
 
@@ -51,10 +52,12 @@
 
   .select-toolbar{ max-width:720px; margin:0 auto 12px; display:flex; gap:8px; align-items:center; justify-content:space-between; }
   .select-toolbar input{ flex:1; background:transparent; border:1px solid var(--card-edge); color:var(--ink); padding:10px 12px; border-radius:10px; font-size:14px; }
-  .select-toolbar button{ background:linear-gradient(180deg, var(--copper), var(--copper-dim)); border:none; color:#fff; padding:10px 12px; border-radius:10px; font-weight:800; }
+  .select-toolbar input::placeholder{ color:var(--ink-dim); }
+  .select-toolbar button{ background:linear-gradient(180deg, var(--copper), var(--copper-dim)); border:none; color:#fff; padding:10px 12px; border-radius:10px; font-weight:800; cursor:pointer; }
+  .select-toolbar button:active{ opacity:0.8; }
 
   .collapse-toggle{ display:block; max-width:520px; margin:8px auto 6px; text-align:right; }
-  .collapse-toggle button{ background:transparent; color:var(--ink-dim); border:1px solid transparent; font-size:13px; padding:6px 10px; border-radius:10px; }
+  .collapse-toggle button{ background:transparent; color:var(--ink-dim); border:1px solid transparent; font-size:13px; padding:6px 10px; border-radius:10px; cursor:pointer; }
 
   .rows{ max-width:720px; margin:0 auto; display:flex; flex-direction:column; gap:10px; }
   .row{ background:var(--card); border:1px solid var(--card-edge); border-radius:14px; padding:10px 12px; display:flex; align-items:center; gap:10px; }
@@ -64,10 +67,10 @@
   .row textarea:focus{ outline:none; }
   .row textarea::placeholder{ color:var(--ink-dim); opacity:0.6; }
 
-  .collapse-row{ background:linear-gradient(180deg, rgba(13,51,48,0.9), rgba(22,75,70,0.9)); border:1px solid rgba(22,75,70,0.6); border-radius:14px; padding:10px 12px; display:flex; align-items:center; justify-content:space-between; gap:10px; }
+  .collapse-row{ background:linear-gradient(180deg, rgba(13,51,48,0.9), rgba(22,75,70,0.9)); border:1px solid rgba(22,75,70,0.6); border-radius:14px; padding:10px 12px; display:flex; align-items:center; gap:10px; }
   .collapse-row .range-label{ color:var(--ink); font-weight:700; }
   .collapse-row .range-text{ color:var(--ink-dim); margin-left:10px; flex:1; text-align:right; }
-  .collapse-row button{ background:transparent; color:var(--ink); border:1px solid rgba(255,255,255,0.06); padding:6px 10px; border-radius:10px; }
+  .collapse-row button{ background:transparent; color:var(--ink); border:1px solid rgba(255,255,255,0.06); padding:6px 10px; border-radius:10px; cursor:pointer; }
 
   .saved-note{ text-align:center; font-size:12px; color:var(--ink-dim); min-height:16px; margin-top:14px; }
 
@@ -94,7 +97,7 @@
     </header>
 
     <div class="select-toolbar">
-      <input id="selectionInput" placeholder="Text for seleceted hours (For example: 'Sleep')">
+      <input id="selectionInput" placeholder="Text for selected hours (For example: 'Sleep')">
       <button id="applySelectionBtn">Apply</button>
     </div>
     <div class="rows" id="rows"></div>
@@ -112,7 +115,6 @@
   const dayDateLabel = document.getElementById('dayDateLabel');
   const rowsEl = document.getElementById('rows');
   const savedNote = document.getElementById('savedNote');
-  const toggleCollapseBtn = document.getElementById('toggleCollapseBtn');
   const selectionInput = document.getElementById('selectionInput');
   const applySelectionBtn = document.getElementById('applySelectionBtn');
 
@@ -123,7 +125,7 @@
   let ranges = []; // [{start, end, text}]
 
   function todayKey(){ const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); }
-  function formatDate(dateStr){ const d = new Date(dateStr + 'T00:00:00'); return d.toLocaleDateString('eng-ENG', { weekday:'long', day:'numeric', month:'long' }); }
+  function formatDate(dateStr){ const d = new Date(dateStr + 'T00:00:00'); return d.toLocaleDateString('en-US', { weekday:'long', day:'numeric', month:'long' }); }
 
   const store = {
     async set(key, value){ if(window.storage && window.storage.set){ try{ await window.storage.set(key, value, false); return; }catch(e){} } try{ localStorage.setItem(key, value); }catch(e){} },
@@ -133,14 +135,14 @@
   async function getDaysIndex(){ const raw = await store.get(DAYS_INDEX_KEY); if(!raw) return []; try{ const arr = JSON.parse(raw); return Array.isArray(arr) ? arr : []; }catch(e){ return []; } }
   async function addToDaysIndex(dateStr){ const days = await getDaysIndex(); if(!days.includes(dateStr)){ days.push(dateStr); await store.set(DAYS_INDEX_KEY, JSON.stringify(days)); } }
 
-  async function renderList(){ const days = await getDaysIndex(); const today = todayKey(); const pastDays = days.filter(d => d !== today).sort((a,b) => b.localeCompare(a)); dayList.innerHTML = ''; emptyList.style.display = pastDays.length ? 'none' : 'block'; for(const d of pastDays){ const raw = await store.get('hourly-log:' + d); let filled = 0; if(raw){ try{ const data = JSON.parse(raw); const rs = data.ranges || []; if(Array.isArray(rs)){ for(const r of rs){ filled += (r.end - r.start + 1); } } }catch(e){} } const btn = document.createElement('button'); btn.type='button'; btn.className='day-item'; btn.innerHTML = `<span><span class="d-date">${formatDate(d)}</span><span class="d-sub">${filled} vyplnených hodín</span></span><span class="chev">›</span>`; btn.addEventListener('click', ()=>openDay(d)); dayList.appendChild(btn); } }
+  async function renderList(){ const days = await getDaysIndex(); const today = todayKey(); const pastDays = days.filter(d => d !== today).sort((a,b) => b.localeCompare(a)); dayList.innerHTML = ''; emptyList.style.display = pastDays.length === 0 ? 'block' : 'none'; for(const day of pastDays){ const item = document.createElement('button'); item.className='day-item'; item.type='button'; item.innerHTML = `<div><div class="d-date">${formatDate(day)}</div><div class="d-sub">${day}</div></div>`; item.addEventListener('click', ()=>openDay(day)); dayList.appendChild(item); } }
 
   todayBtn.addEventListener('click', ()=>openDay(todayKey()));
   backBtn.addEventListener('click', async ()=>{ dayScreen.classList.remove('show'); listScreen.classList.add('show'); await renderList(); });
 
   function autoGrow(ta){ ta.style.height='auto'; ta.style.height = ta.scrollHeight + 'px'; }
 
-  function createHourRow(h, val){ const row = document.createElement('div'); row.className='row'; const label = String(h).padStart(2,'0') + ':00'; row.innerHTML = `<div class="hour" data-hour="${h}">${label}</div><textarea data-hour="${h}" rows="1" placeholder="What have you been doing?"></textarea>`; const ta = row.querySelector('textarea'); const hourEl = row.querySelector('.hour'); if(val) ta.value = val; autoGrow(ta); ta.addEventListener('input', ()=>{ autoGrow(ta); scheduleSave(); });
+  function createHourRow(h, val){ const row = document.createElement('div'); row.className='row'; const label = String(h).padStart(2,'0') + ':00'; row.innerHTML = `<div class="hour" data-hour="${h}">${label}</div><textarea data-hour="${h}" placeholder="What did you do?">${val || ''}</textarea>`; const ta = row.querySelector('textarea'); ta.addEventListener('input', ()=>{ autoGrow(ta); scheduleSave(); }); const hourEl = row.querySelector('.hour');
 
     hourEl.addEventListener('click', (ev)=>{
       const hour = Number(hourEl.dataset.hour);
@@ -156,18 +158,18 @@
 
     return row; }
 
-  function createCollapseRow(range){ const groupEl = document.createElement('div'); groupEl.className='collapse-row'; const fromLabel = String(range.start); const toLabel = String(range.end); const text = range.text; groupEl.innerHTML = `<div style="display:flex;gap:8px;align-items:center;"><div class="range-label">${fromLabel}:00-${toLabel}:00: ${text}</div></div><div style="display:flex;gap:8px;"><button type="button" class="expand-btn">Rozbaliť</button></div>`; const expandBtn = groupEl.querySelector('.expand-btn'); expandBtn.addEventListener('click', ()=>{ const fragment = document.createDocumentFragment(); for(let hh=range.start; hh<=range.end; hh++){ fragment.appendChild(createHourRow(hh, range.text)); } rowsEl.replaceChild(fragment, groupEl); }); return groupEl; }
+  function createCollapseRow(range){ const groupEl = document.createElement('div'); groupEl.className='collapse-row'; const fromLabel = String(range.start).padStart(2,'0'); const toLabel = String(range.end).padStart(2,'0'); const text = range.text || ''; groupEl.innerHTML = `<div class="range-label">${fromLabel}:00 - ${toLabel}:00</div><div class="range-text">${text}</div><button type="button">Edit</button>`; const btn = groupEl.querySelector('button'); btn.addEventListener('click', ()=>{ collapseEnabled = false; buildRowsFromRanges(); }); return groupEl; }
 
-  function buildRowsFromRanges(){ rowsEl.innerHTML=''; let idx = 0; while(idx < 24){ const r = ranges.find(rn => rn.start === idx); if(r){ if(collapseEnabled && r.end > r.start){ rowsEl.appendChild(createCollapseRow(r)); idx = r.end + 1; continue; } for(let hh=r.start; hh<=r.end; hh++){ rowsEl.appendChild(createHourRow(hh, r.text)); } idx = r.end + 1; continue; } rowsEl.appendChild(createHourRow(idx, '')); idx++; } }
+  function buildRowsFromRanges(){ rowsEl.innerHTML=''; let idx = 0; while(idx < 24){ const r = ranges.find(rn => rn.start === idx); if(r){ if(collapseEnabled && r.end > r.start){ rowsEl.appendChild(createCollapseRow(r)); idx = r.end; } else { rowsEl.appendChild(createHourRow(idx, idx >= r.start && idx < r.end ? r.text : '')); idx++; } } else { rowsEl.appendChild(createHourRow(idx, '')); idx++; } } }
 
-  function normalizeRanges(arr){ if(!Array.isArray(arr)) return []; const sorted = arr.slice().sort((a,b)=>a.start-b.start); const out = []; for(const r of sorted){ if(out.length===0){ out.push(Object.assign({},r)); continue; } const last = out[out.length-1]; if(r.start <= last.end + 1 && r.text === last.text){ last.end = Math.max(last.end, r.end); } else if(r.start <= last.end){ if(r.text === last.text){ last.end = Math.max(last.end, r.end); } else { if(r.start <= last.end){ last.end = r.start - 1; if(last.end < last.start) out.pop(); } out.push(Object.assign({},r)); } } else { out.push(Object.assign({},r)); } } return out; }
+  function normalizeRanges(arr){ if(!Array.isArray(arr)) return []; const sorted = arr.slice().sort((a,b)=>a.start-b.start); const out = []; for(const r of sorted){ if(out.length===0){ out.push(Object.assign({}, r)); } else { const last = out[out.length-1]; if(r.start <= last.end){ last.end = Math.max(last.end, r.end); if(!last.text && r.text) last.text = r.text; } else { out.push(Object.assign({}, r)); } } } return out; }
 
   let saveTimer = null;
   function scheduleSave(){ savedNote.textContent = 'Saving…'; clearTimeout(saveTimer); saveTimer = setTimeout(saveNow, 400); }
-  async function saveNow(){ await store.set('hourly-log:' + activeDate, JSON.stringify({ ranges })); if(ranges.length) await addToDaysIndex(activeDate); savedNote.textContent = 'Saved ' + new Date().toLocaleTimeString('eng-ENG', { hour:'2-digit', minute:'2-digit' }); }
+  async function saveNow(){ const entries = {}; for(let h=0; h<24; h++){ const ta = rowsEl.querySelector('textarea[data-hour="'+h+'"]'); if(ta) entries[h] = ta.value; } await store.set('hourly-log:' + activeDate, JSON.stringify({ ranges, entries })); if(Object.values(entries).some(v=>v)) await addToDaysIndex(activeDate); savedNote.textContent = 'Saved ' + new Date().toLocaleTimeString(); }
 
   applySelectionBtn.addEventListener('click', ()=>{
-    const v = (selectionInput.value || '').trim(); if(v==='') return; const selected = Array.from(rowsEl.querySelectorAll('.row.selected textarea')); if(selected.length===0) return; const hours = selected.map(t=>Number(t.dataset.hour)); const start = Math.min(...hours); const end = Math.max(...hours);
+    const v = (selectionInput.value || '').trim(); if(v==='') return; const selected = Array.from(rowsEl.querySelectorAll('.row.selected textarea')); if(selected.length===0) return; const hours = selected.map(ta=>Number(ta.dataset.hour)).sort((a,b)=>a-b); const start = Math.min(...hours); const end = Math.max(...hours) + 1;
     ranges = ranges.filter(r=> r.end < start || r.start > end);
     ranges.push({ start, end, text: v });
     ranges = normalizeRanges(ranges);
@@ -178,8 +180,7 @@
 
   async function openDay(dateStr){ activeDate = dateStr; const isToday = dateStr === todayKey(); dayTitle.textContent = isToday ? 'Today' : 'Record'; dayDateLabel.textContent = formatDate(dateStr);
     const raw = await store.get('hourly-log:' + dateStr); ranges = [];
-    if(raw){ try{ const data = JSON.parse(raw); if(Array.isArray(data.ranges)) ranges = data.ranges.slice(); else if(data.entries){ const e = data.entries; for(const k in e){ const h = Number(k); const txt = e[k]; ranges.push({ start:h, end:h, text:txt }); } ranges = normalizeRanges(ranges); } }catch(e){}
-    }
+    if(raw){ try{ const data = JSON.parse(raw); if(Array.isArray(data.ranges)) ranges = data.ranges.slice(); if(data.entries){ for(let k in data.entries){ const h = Number(k); if(h>=0 && h<24){ const text = data.entries[k]; if(text && !ranges.find(r=>h>=r.start && h<r.end)){ ranges.push({ start:h, end:h+1, text }); } } } } }catch(e){} }
     ranges = normalizeRanges(ranges);
     buildRowsFromRanges(); savedNote.textContent=''; listScreen.classList.remove('show'); dayScreen.classList.add('show'); }
 
