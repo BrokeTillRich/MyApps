@@ -161,6 +161,35 @@
   }
   .gen-btn:active{ transform:scale(0.98); }
 
+  .range-fill{
+    max-width:520px;
+    margin:6px auto 12px;
+    display:flex;
+    gap:8px;
+    align-items:flex-start;
+  }
+  .range-fill textarea{
+    flex:1;
+    min-height:44px;
+    resize:none;
+    background:transparent;
+    border:1px solid var(--card-edge);
+    color:var(--ink);
+    padding:8px 10px;
+    border-radius:10px;
+    font-size:14px;
+  }
+  .apply-btn{
+    background:linear-gradient(180deg, var(--copper), var(--copper-dim));
+    border:none;
+    color:#fff;
+    padding:10px 12px;
+    border-radius:10px;
+    font-weight:800;
+    cursor:pointer;
+  }
+  .apply-btn:active{ transform:scale(0.98); }
+
   .rows{
     max-width:520px;
     margin:0 auto;
@@ -241,6 +270,12 @@
     </div>
     <button type="button" class="gen-btn" id="genBtn">Prispôsobiť rozsah hodín</button>
 
+    <!-- New: fill entire range with a single note -->
+    <div class="range-fill" id="rangeFill">
+      <textarea id="rangeNote" placeholder="Zadaj text, ktorý sa použije pre celý rozsah (napr. 'V škole')"></textarea>
+      <button type="button" class="apply-btn" id="applyRangeBtn">Aplikovať na rozsah</button>
+    </div>
+
     <div class="rows" id="rows"></div>
     <div class="saved-note" id="savedNote"></div>
   </div>
@@ -259,6 +294,8 @@
   const genBtn = document.getElementById('genBtn');
   const rowsEl = document.getElementById('rows');
   const savedNote = document.getElementById('savedNote');
+  const rangeNote = document.getElementById('rangeNote');
+  const applyRangeBtn = document.getElementById('applyRangeBtn');
 
   const DAYS_INDEX_KEY = 'hourly-log:days';
   const RANGE_KEY = 'hourly-log:range';
@@ -360,6 +397,7 @@
   function buildRows(from, to, entries){
     rowsEl.innerHTML = '';
     if(from > to){ [from, to] = [to, from]; }
+    const values = [];
     for(let h = from; h <= to; h++){
       const row = document.createElement('div');
       row.className = 'row';
@@ -369,10 +407,19 @@
         <textarea data-hour="${h}" rows="1" placeholder="Čo si robil?"></textarea>
       `;
       const ta = row.querySelector('textarea');
-      if(entries[h] !== undefined) ta.value = entries[h];
+      const val = entries && entries[h] !== undefined ? entries[h] : '';
+      if(val) ta.value = val;
       autoGrow(ta);
       ta.addEventListener('input', () => { autoGrow(ta); scheduleSave(); });
       rowsEl.appendChild(row);
+      values.push(val || '');
+    }
+    // If all values in the range are identical and non-empty, prefill the rangeNote
+    const unique = Array.from(new Set(values));
+    if(unique.length === 1 && unique[0].trim() !== ''){
+      rangeNote.value = unique[0];
+    } else {
+      rangeNote.value = '';
     }
   }
 
@@ -394,6 +441,16 @@
     if(Object.keys(entries).length) await addToDaysIndex(activeDate);
     savedNote.textContent = 'uložené ' + new Date().toLocaleTimeString('sk-SK', { hour:'2-digit', minute:'2-digit' });
   }
+
+  // Apply the text in rangeNote to all hour rows in the current visible range
+  applyRangeBtn.addEventListener('click', () => {
+    const v = rangeNote.value || '';
+    rowsEl.querySelectorAll('textarea').forEach(t => {
+      t.value = v;
+      autoGrow(t);
+    });
+    scheduleSave();
+  });
 
   async function openDay(dateStr){
     activeDate = dateStr;
