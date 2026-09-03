@@ -38,6 +38,7 @@
      For standalone use the .standalone class will apply the gradient. */
   body{
     margin:0;
+    padding:0;
     background:transparent;
     font-family:-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
     color:var(--ink);
@@ -46,23 +47,19 @@
     align-items:center;
     justify-content:space-between;
     min-height:100vh;
-    padding:env(safe-area-inset-top,24px) 20px calc(env(safe-area-inset-bottom,24px) + 12px);
-    overflow:auto; /* allow scrolling inside iframe and standalone */
+    overflow:auto;
     -webkit-overflow-scrolling:touch;
     user-select:none;
   }
 
-  /* Standalone view: paint the gradient on the root so bounce never shows white */
-  html.standalone, html.standalone body {
-    background:radial-gradient(circle at 50% 0%, var(--bg-top), var(--bg-bot) 70%);
-    background-color:var(--bg-bot);
-    background-attachment:fixed;
+  /* Standalone view: paint the gradient on the root so bounce never shows color */
+  html.standalone {
+    background:radial-gradient(circle at 50% 0%, var(--bg-top), var(--bg-bot) 70%) fixed;
   }
 
-  /* When embedded, ensure transparent background and slightly reduced padding */
-  html.in-iframe, html.in-iframe body {
+  /* When embedded, ensure transparent background */
+  html.in-iframe {
     background:transparent;
-    background-color:transparent;
   }
 
   /* Backscreen: always visible under content when scrolling */
@@ -73,7 +70,12 @@
     z-index:0;
     pointer-events:none;
   }
-  .content{ position:relative; z-index:1; width:100%; }
+  .content{ 
+    position:relative; 
+    z-index:1; 
+    width:100%; 
+    padding:env(safe-area-inset-top, 24px) 20px env(safe-area-inset-bottom, 24px);
+  }
 
   .brand{
     text-align:center;
@@ -396,10 +398,6 @@
     // make sure root elements are transparent
     document.documentElement.style.background = 'transparent';
     document.body.style.background = 'transparent';
-    // reduce padding so the app fits nicely inside the iframe
-    document.body.style.padding = 'env(safe-area-inset-top,8px) 0 calc(env(safe-area-inset-bottom,8px) + 8px)';
-    // allow content to scroll inside iframe
-    document.body.style.overflow = 'auto';
   }
 
   function render(){
@@ -464,10 +462,6 @@
     render();
     save();
   });
-
-  // ensure the backscreen stays visible during touch-scroll on iOS by keeping
-  // the body background off and using the fixed #backscreen element.
-  // Nothing else required; fixed element stays put while content scrolls.
 
   load();
 </script>
