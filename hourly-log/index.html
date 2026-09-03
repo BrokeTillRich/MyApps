@@ -81,25 +81,22 @@
     <header>
       <h1>Hourly-log</h1>
     </header>
-    <button type="button" class="today-btn" id="todayBtn">+ Zapisovať dnes</button>
+    <button type="button" class="today-btn" id="todayBtn">Write</button>
     <div class="day-list" id="dayList"></div>
-    <div class="empty-list" id="emptyList">Zatiaľ nemáš žiadne staré záznamy.</div>
+    <div class="empty-list" id="emptyList">No old logs.</div>
   </div>
 
   <div class="screen" id="dayScreen">
     <header>
-      <button type="button" class="back-btn" id="backBtn">&larr; Späť</button>
-      <h1 id="dayTitle">Dnes</h1>
+      <button type="button" class="back-btn" id="backBtn">&larr; Back</button>
+      <h1 id="dayTitle">Today</h1>
       <div class="date" id="dayDateLabel"></div>
     </header>
 
     <div class="select-toolbar">
-      <input id="selectionInput" placeholder="Text pre vybrané hodiny (napr. 'Spánok')">
-      <button id="applySelectionBtn">Aplikovať</button>
+      <input id="selectionInput" placeholder="Text for seleceted hours (For example: 'Sleep')">
+      <button id="applySelectionBtn">Apply</button>
     </div>
-
-    <div class="collapse-toggle"><button id="toggleCollapseBtn">Zlúčiť rovnaké hodiny</button></div>
-
     <div class="rows" id="rows"></div>
     <div class="saved-note" id="savedNote"></div>
   </div>
@@ -143,7 +140,7 @@
 
   function autoGrow(ta){ ta.style.height='auto'; ta.style.height = ta.scrollHeight + 'px'; }
 
-  function createHourRow(h, val){ const row = document.createElement('div'); row.className='row'; const label = String(h).padStart(2,'0') + ':00'; row.innerHTML = `<div class="hour" data-hour="${h}">${label}</div><textarea data-hour="${h}" rows="1" placeholder="Čo si robil?"></textarea>`; const ta = row.querySelector('textarea'); const hourEl = row.querySelector('.hour'); if(val) ta.value = val; autoGrow(ta); ta.addEventListener('input', ()=>{ autoGrow(ta); scheduleSave(); });
+  function createHourRow(h, val){ const row = document.createElement('div'); row.className='row'; const label = String(h).padStart(2,'0') + ':00'; row.innerHTML = `<div class="hour" data-hour="${h}">${label}</div><textarea data-hour="${h}" rows="1" placeholder="What have you been doing?"></textarea>`; const ta = row.querySelector('textarea'); const hourEl = row.querySelector('.hour'); if(val) ta.value = val; autoGrow(ta); ta.addEventListener('input', ()=>{ autoGrow(ta); scheduleSave(); });
 
     hourEl.addEventListener('click', (ev)=>{
       const hour = Number(hourEl.dataset.hour);
@@ -166,7 +163,7 @@
   function normalizeRanges(arr){ if(!Array.isArray(arr)) return []; const sorted = arr.slice().sort((a,b)=>a.start-b.start); const out = []; for(const r of sorted){ if(out.length===0){ out.push(Object.assign({},r)); continue; } const last = out[out.length-1]; if(r.start <= last.end + 1 && r.text === last.text){ last.end = Math.max(last.end, r.end); } else if(r.start <= last.end){ if(r.text === last.text){ last.end = Math.max(last.end, r.end); } else { if(r.start <= last.end){ last.end = r.start - 1; if(last.end < last.start) out.pop(); } out.push(Object.assign({},r)); } } else { out.push(Object.assign({},r)); } } return out; }
 
   let saveTimer = null;
-  function scheduleSave(){ savedNote.textContent = 'ukladám…'; clearTimeout(saveTimer); saveTimer = setTimeout(saveNow, 400); }
+  function scheduleSave(){ savedNote.textContent = 'Saving…'; clearTimeout(saveTimer); saveTimer = setTimeout(saveNow, 400); }
   async function saveNow(){ await store.set('hourly-log:' + activeDate, JSON.stringify({ ranges })); if(ranges.length) await addToDaysIndex(activeDate); savedNote.textContent = 'uložené ' + new Date().toLocaleTimeString('sk-SK', { hour:'2-digit', minute:'2-digit' }); }
 
   applySelectionBtn.addEventListener('click', ()=>{
@@ -179,9 +176,7 @@
     scheduleSave();
   });
 
-  toggleCollapseBtn.addEventListener('click', ()=>{ collapseEnabled = !collapseEnabled; toggleCollapseBtn.textContent = collapseEnabled ? 'Zlúčiť rovnaké hodiny' : 'Zobraziť všetky hodiny'; buildRowsFromRanges(); });
-
-  async function openDay(dateStr){ activeDate = dateStr; const isToday = dateStr === todayKey(); dayTitle.textContent = isToday ? 'Dnes' : 'Záznam'; dayDateLabel.textContent = formatDate(dateStr);
+  async function openDay(dateStr){ activeDate = dateStr; const isToday = dateStr === todayKey(); dayTitle.textContent = isToday ? 'Today' : 'Record'; dayDateLabel.textContent = formatDate(dateStr);
     const raw = await store.get('hourly-log:' + dateStr); ranges = [];
     if(raw){ try{ const data = JSON.parse(raw); if(Array.isArray(data.ranges)) ranges = data.ranges.slice(); else if(data.entries){ const e = data.entries; for(const k in e){ const h = Number(k); const txt = e[k]; ranges.push({ start:h, end:h, text:txt }); } ranges = normalizeRanges(ranges); } }catch(e){}
     }
