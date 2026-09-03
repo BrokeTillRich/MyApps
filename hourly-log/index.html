@@ -14,6 +14,7 @@
     --copper-dim:#8a5f3d;
     --ink:#eaf6f4;
     --ink-dim:#9fc4bf;
+    --select:#0f4b45;
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
   html,body{height:100%;}
@@ -121,74 +122,31 @@
   }
 
   /* ---------- Obrazovka dňa ---------- */
-  .range-card{
-    background:var(--card);
-    border:1px solid var(--card-edge);
-    border-radius:16px;
-    padding:14px;
+  .select-toolbar{
+    max-width:520px;
+    margin:0 auto 12px;
     display:flex;
+    gap:8px;
     align-items:center;
-    gap:8px;
-    justify-content:center;
-    flex-wrap:wrap;
-    margin-bottom:16px;
-    max-width:520px;
-    margin-left:auto;
-    margin-right:auto;
+    justify-content:space-between;
   }
-  .range-card label{
-    font-size:13px;
-    color:var(--ink-dim);
-  }
-  select{
-    background:#0a2624;
-    border:1px solid var(--card-edge);
-    color:var(--ink);
-    font-size:15px;
-    padding:8px 10px;
-    border-radius:10px;
-  }
-  .gen-btn{
-    width:100%;
-    margin-top:12px;
-    padding:12px 0;
-    border:none;
-    border-radius:12px;
-    background:var(--card-edge);
-    color:var(--ink);
-    font-size:14px;
-    font-weight:700;
-  }
-  .gen-btn:active{ transform:scale(0.98); }
-
-  .range-fill{
-    max-width:520px;
-    margin:6px auto 12px;
-    display:flex;
-    gap:8px;
-    align-items:flex-start;
-  }
-  .range-fill textarea{
+  .select-toolbar input{
     flex:1;
-    min-height:44px;
-    resize:none;
     background:transparent;
     border:1px solid var(--card-edge);
     color:var(--ink);
-    padding:8px 10px;
+    padding:10px 12px;
     border-radius:10px;
     font-size:14px;
   }
-  .apply-btn{
+  .select-toolbar button{
     background:linear-gradient(180deg, var(--copper), var(--copper-dim));
     border:none;
     color:#fff;
     padding:10px 12px;
     border-radius:10px;
     font-weight:800;
-    cursor:pointer;
   }
-  .apply-btn:active{ transform:scale(0.98); }
 
   .collapse-toggle{
     display:block;
@@ -221,12 +179,15 @@
     align-items:center;
     gap:10px;
   }
+  .row.selected{ background: linear-gradient(90deg, rgba(15,75,69,0.15), rgba(15,75,69,0.08)); border-color:var(--select); }
   .row .hour{
     flex:0 0 auto;
     font-size:13px;
     font-weight:700;
     color:var(--copper);
     min-width:56px;
+    cursor:pointer;
+    user-select:none;
   }
   .row textarea{
     flex:1;
@@ -265,16 +226,6 @@
     margin-top:14px;
   }
 
-  /* confirm modal */
-  .modal-backdrop{ position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,0.5); z-index:60; }
-  .modal-backdrop.show{ display:flex; }
-  .modal{ background:var(--card); border:1px solid var(--card-edge); padding:16px; border-radius:12px; max-width:420px; width:88%; color:var(--ink); }
-  .modal .title{ font-weight:800; margin-bottom:8px; }
-  .modal .actions{ display:flex; gap:8px; justify-content:flex-end; margin-top:12px; }
-  .modal button{ padding:8px 12px; border-radius:10px; border:none; }
-  .btn-cancel{ background:transparent; color:var(--ink-dim); }
-  .btn-confirm{ background:linear-gradient(180deg, var(--copper), var(--copper-dim)); color:#fff; font-weight:800; }
-
   .screen{ display:none; }
   .screen.show{ display:block; }
 </style>
@@ -299,36 +250,15 @@
       <div class="date" id="dayDateLabel"></div>
     </header>
 
-    <div class="range-card">
-      <label for="fromHour">Od</label>
-      <select id="fromHour"></select>
-      <label for="toHour">Do</label>
-      <select id="toHour"></select>
-    </div>
-    <button type="button" class="gen-btn" id="genBtn">Prispôsobiť rozsah hodín</button>
-
-    <!-- New: fill entire range with a single note -->
-    <div class="range-fill" id="rangeFill">
-      <textarea id="rangeNote" placeholder="Zadaj text, ktorý sa použije pre celý rozsah (napr. 'V škole')"></textarea>
-      <button type="button" class="apply-btn" id="applyRangeBtn">Aplikovať na rozsah</button>
+    <div class="select-toolbar">
+      <input id="selectionInput" placeholder="Text pre vybrané hodiny (napr. 'Spánok')">
+      <button id="applySelectionBtn">Aplikovať</button>
     </div>
 
     <div class="collapse-toggle"><button id="toggleCollapseBtn">Zlúčiť rovnaké hodiny</button></div>
 
     <div class="rows" id="rows"></div>
     <div class="saved-note" id="savedNote"></div>
-  </div>
-
-  <!-- confirm modal -->
-  <div class="modal-backdrop" id="confirmModal" role="dialog" aria-modal="true" aria-hidden="true">
-    <div class="modal" role="document">
-      <div class="title">Prepísať existujúce záznamy?</div>
-      <div class="body">Niektoré hodiny v rozsahu už obsahujú text. Chceš ich nahradiť zadaným textom?</div>
-      <div class="actions">
-        <button class="btn-cancel" id="cancelOverwriteBtn">Zrušiť</button>
-        <button class="btn-confirm" id="confirmOverwriteBtn">Prepísať</button>
-      </div>
-    </div>
   </div>
 
 <script>
@@ -340,23 +270,16 @@
   const emptyList = document.getElementById('emptyList');
   const dayTitle = document.getElementById('dayTitle');
   const dayDateLabel = document.getElementById('dayDateLabel');
-  const fromSel = document.getElementById('fromHour');
-  const toSel = document.getElementById('toHour');
-  const genBtn = document.getElementById('genBtn');
   const rowsEl = document.getElementById('rows');
   const savedNote = document.getElementById('savedNote');
-  const rangeNote = document.getElementById('rangeNote');
-  const applyRangeBtn = document.getElementById('applyRangeBtn');
   const toggleCollapseBtn = document.getElementById('toggleCollapseBtn');
-  const confirmModal = document.getElementById('confirmModal');
-  const confirmOverwriteBtn = document.getElementById('confirmOverwriteBtn');
-  const cancelOverwriteBtn = document.getElementById('cancelOverwriteBtn');
+  const selectionInput = document.getElementById('selectionInput');
+  const applySelectionBtn = document.getElementById('applySelectionBtn');
 
   const DAYS_INDEX_KEY = 'hourly-log:days';
-  const RANGE_KEY = 'hourly-log:range';
   let activeDate = null;
   let collapseEnabled = true; // collapse identical consecutive hours by default
-  let pendingApplyValue = null; // used when waiting for confirmation
+  let lastClickedHour = null;
 
   function todayKey(){
     const d = new Date();
@@ -437,15 +360,6 @@
     await renderList();
   });
 
-  // ---------- Obrazovka dňa ----------
-  for(let h = 0; h < 24; h++){
-    const label = String(h).padStart(2,'0') + ':00';
-    const o1 = document.createElement('option'); o1.value = h; o1.textContent = label;
-    const o2 = document.createElement('option'); o2.value = h; o2.textContent = label;
-    fromSel.appendChild(o1);
-    toSel.appendChild(o2);
-  }
-
   function autoGrow(ta){
     ta.style.height = 'auto';
     ta.style.height = ta.scrollHeight + 'px';
@@ -456,28 +370,46 @@
     row.className = 'row';
     const label = String(h).padStart(2,'0') + ':00';
     row.innerHTML = `
-      <div class="hour">${label}</div>
+      <div class="hour" data-hour="${h}">${label}</div>
       <textarea data-hour="${h}" rows="1" placeholder="Čo si robil?"></textarea>
     `;
     const ta = row.querySelector('textarea');
+    const hourEl = row.querySelector('.hour');
     if(val) ta.value = val;
     autoGrow(ta);
     ta.addEventListener('input', () => { autoGrow(ta); scheduleSave(); });
+
+    // selection handlers: click to toggle, shift-click to select range
+    hourEl.addEventListener('click', (ev) => {
+      const hour = Number(hourEl.dataset.hour);
+      if(ev.shiftKey && lastClickedHour !== null){
+        const a = Math.min(lastClickedHour, hour);
+        const b = Math.max(lastClickedHour, hour);
+        // toggle selection for range
+        for(let hh = a; hh <= b; hh++){
+          const taEl = rowsEl.querySelector('textarea[data-hour="' + hh + '"]');
+          if(taEl){ taEl.parentElement.classList.add('selected'); }
+        }
+      } else {
+        // toggle this row
+        row.classList.toggle('selected');
+        lastClickedHour = hour;
+      }
+    });
+
     return row;
   }
 
-  function buildRows(from, to, entries){
+  function buildRows(entries){
     rowsEl.innerHTML = '';
-    if(from > to){ [from, to] = [to, from]; }
-    // collect values for the range
+    // full day 0..23
     const vals = [];
-    for(let h = from; h <= to; h++){
+    for(let h = 0; h < 24; h++){
       const v = entries && entries[h] !== undefined ? entries[h] : '';
       vals.push({ hour: h, val: v });
     }
 
     if(collapseEnabled){
-      // group consecutive equal non-empty values
       let i = 0;
       while(i < vals.length){
         const start = i;
@@ -503,7 +435,6 @@
           `;
           const expandBtn = groupEl.querySelector('.expand-btn');
           expandBtn.addEventListener('click', () => {
-            // replace collapsed group with individual hour rows
             const fragment = document.createDocumentFragment();
             for(let hh = vals[start].hour; hh <= vals[end].hour; hh++){
               fragment.appendChild(createHourRow(hh, currentVal));
@@ -512,7 +443,6 @@
           });
           rowsEl.appendChild(groupEl);
         } else {
-          // show individual rows
           for(let hh = vals[start].hour; hh <= vals[end].hour; hh++){
             const val = entries && entries[hh] !== undefined ? entries[hh] : '';
             rowsEl.appendChild(createHourRow(hh, val));
@@ -520,18 +450,7 @@
         }
       }
     } else {
-      // no collapsing — show all hours
-      for(const it of vals){
-        rowsEl.appendChild(createHourRow(it.hour, it.val));
-      }
-    }
-
-    // If all values in the range are identical and non-empty, prefill the rangeNote
-    const unique = Array.from(new Set(vals.map(v => v.val || '')));
-    if(unique.length === 1 && unique[0].trim() !== ''){
-      rangeNote.value = unique[0];
-    } else {
-      rangeNote.value = '';
+      for(const it of vals){ rowsEl.appendChild(createHourRow(it.hour, it.val)); }
     }
   }
 
@@ -546,74 +465,34 @@
     rowsEl.querySelectorAll('textarea').forEach(t => {
       if(t.value.trim()) entries[t.dataset.hour] = t.value;
     });
-    const from = Number(fromSel.value);
-    const to = Number(toSel.value);
-    await store.set('hourly-log:' + activeDate, JSON.stringify({ from, to, entries }));
-    await store.set(RANGE_KEY, JSON.stringify({ from, to }));
+    await store.set('hourly-log:' + activeDate, JSON.stringify({ entries }));
     if(Object.keys(entries).length) await addToDaysIndex(activeDate);
     savedNote.textContent = 'uložené ' + new Date().toLocaleTimeString('sk-SK', { hour:'2-digit', minute:'2-digit' });
   }
 
-  function showConfirmModal(){
-    confirmModal.classList.add('show');
-    confirmModal.setAttribute('aria-hidden', 'false');
-  }
-  function hideConfirmModal(){
-    confirmModal.classList.remove('show');
-    confirmModal.setAttribute('aria-hidden', 'true');
-  }
-
-  // Apply the text in rangeNote to all hour rows in the current visible range
-  applyRangeBtn.addEventListener('click', () => {
-    const v = rangeNote.value || '';
-    // check for existing non-empty values that would be overwritten
-    const existing = [];
-    rowsEl.querySelectorAll('textarea').forEach(t => {
-      const cur = (t.value || '').trim();
-      if(cur !== '' && cur !== v.trim()) existing.push({ hour: t.dataset.hour, value: cur });
-    });
-    if(existing.length > 0){
-      // ask for confirmation
-      pendingApplyValue = v;
-      showConfirmModal();
-      return;
-    }
-    // no conflicts — apply immediately
-    rowsEl.querySelectorAll('textarea').forEach(t => {
-      t.value = v;
-      autoGrow(t);
-    });
+  // apply selection input to selected rows
+  applySelectionBtn.addEventListener('click', () => {
+    const v = (selectionInput.value || '').trim();
+    if(v === '') return;
+    const selected = rowsEl.querySelectorAll('.row.selected textarea');
+    if(selected.length === 0) return;
+    selected.forEach(t => { t.value = v; autoGrow(t); t.parentElement.classList.remove('selected'); });
+    selectionInput.value = '';
     scheduleSave();
   });
-
-  // modal buttons
-  confirmOverwriteBtn.addEventListener('click', () => {
-    if(pendingApplyValue === null) return hideConfirmModal();
-    const v = pendingApplyValue;
-    rowsEl.querySelectorAll('textarea').forEach(t => {
-      t.value = v;
-      autoGrow(t);
-    });
-    pendingApplyValue = null;
-    hideConfirmModal();
-    scheduleSave();
-  });
-  cancelOverwriteBtn.addEventListener('click', () => { pendingApplyValue = null; hideConfirmModal(); });
 
   // toggle collapse behaviour
   toggleCollapseBtn.addEventListener('click', () => {
     collapseEnabled = !collapseEnabled;
     toggleCollapseBtn.textContent = collapseEnabled ? 'Zlúčiť rovnaké hodiny' : 'Zobraziť všetky hodiny';
-    // rebuild current range
-    buildRows(Number(fromSel.value), Number(toSel.value), getCurrentEntriesObject());
+    // rebuild current view
+    const entries = getCurrentEntriesObject();
+    buildRows(entries);
   });
 
   function getCurrentEntriesObject(){
-    // read entries from displayed rows (if expanded) or fall back to stored data
     const entries = {};
-    rowsEl.querySelectorAll('textarea').forEach(t => {
-      if(t.value.trim()) entries[t.dataset.hour] = t.value;
-    });
+    rowsEl.querySelectorAll('textarea').forEach(t => { if(t.value.trim()) entries[t.dataset.hour] = t.value; });
     return entries;
   }
 
@@ -624,38 +503,19 @@
     dayDateLabel.textContent = formatDate(dateStr);
 
     const raw = await store.get('hourly-log:' + dateStr);
-    let from = 8, to = 22, entries = {};
+    let entries = {};
     if(raw){
       try{
         const data = JSON.parse(raw);
-        if(Number.isInteger(data.from)) from = data.from;
-        if(Number.isInteger(data.to)) to = data.to;
         entries = data.entries || {};
       }catch(e){}
-    } else {
-      const rawRange = await store.get(RANGE_KEY);
-      if(rawRange){
-        try{
-          const r = JSON.parse(rawRange);
-          if(Number.isInteger(r.from)) from = r.from;
-          if(Number.isInteger(r.to)) to = r.to;
-        }catch(e){}
-      }
     }
-    fromSel.value = from;
-    toSel.value = to;
-    buildRows(from, to, entries);
+    buildRows(entries);
     savedNote.textContent = '';
 
     listScreen.classList.remove('show');
     dayScreen.classList.add('show');
   }
-
-  genBtn.addEventListener('click', () => {
-    const entries = getCurrentEntriesObject();
-    buildRows(Number(fromSel.value), Number(toSel.value), entries);
-    scheduleSave();
-  });
 
   renderList();
 </script>
