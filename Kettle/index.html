@@ -1,6 +1,16 @@
 <!DOCTYPE html>
 <html lang="sk">
 <head>
+<script>
+  // Mark whether the page is embedded early so CSS can react before rendering (avoid white flash)
+  try{
+    if (window.self !== window.top) {
+      document.documentElement.classList.add('in-iframe');
+    } else {
+      document.documentElement.classList.add('standalone');
+    }
+  }catch(e){ document.documentElement.classList.add('standalone'); }
+</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -23,9 +33,12 @@
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
   html,body{height:100%;}
+
+  /* Default: transparent so parent can show through when embedded.
+     For standalone use the .standalone class will apply the gradient. */
   body{
     margin:0;
-    background:radial-gradient(circle at 50% 0%, var(--bg-top), var(--bg-bot) 70%);
+    background:transparent;
     font-family:-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
     color:var(--ink);
     display:flex;
@@ -34,8 +47,22 @@
     justify-content:space-between;
     min-height:100vh;
     padding:env(safe-area-inset-top,24px) 20px calc(env(safe-area-inset-bottom,24px) + 12px);
-    overflow:hidden;
+    overflow:auto; /* allow scrolling inside iframe and standalone */
+    -webkit-overflow-scrolling:touch;
     user-select:none;
+  }
+
+  /* Standalone view: paint the gradient on the root so bounce never shows white */
+  html.standalone, html.standalone body {
+    background:radial-gradient(circle at 50% 0%, var(--bg-top), var(--bg-bot) 70%);
+    background-color:var(--bg-bot);
+    background-attachment:fixed;
+  }
+
+  /* When embedded, ensure transparent background and slightly reduced padding */
+  html.in-iframe, html.in-iframe body {
+    background:transparent;
+    background-color:transparent;
   }
 
   /* Backscreen: always visible under content when scrolling */
@@ -363,11 +390,13 @@
     }
   };
 
-  // When loaded inside an iframe, make the page background transparent so the homescreen gradient shows through.
+  // If the page is embedded we already added the 'in-iframe' class early.
+  // But keep a runtime safety net for older browsers:
   if (window.self !== window.top) {
+    // make sure root elements are transparent
     document.documentElement.style.background = 'transparent';
     document.body.style.background = 'transparent';
-    // remove extra safe-area padding so the app fits nicely inside the iframe
+    // reduce padding so the app fits nicely inside the iframe
     document.body.style.padding = 'env(safe-area-inset-top,8px) 0 calc(env(safe-area-inset-bottom,8px) + 8px)';
     // allow content to scroll inside iframe
     document.body.style.overflow = 'auto';
