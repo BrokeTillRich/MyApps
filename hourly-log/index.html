@@ -190,6 +190,21 @@
   }
   .apply-btn:active{ transform:scale(0.98); }
 
+  .collapse-toggle{
+    display:block;
+    max-width:520px;
+    margin:8px auto 6px;
+    text-align:right;
+  }
+  .collapse-toggle button{
+    background:transparent;
+    color:var(--ink-dim);
+    border:1px solid transparent;
+    font-size:13px;
+    padding:6px 10px;
+    border-radius:10px;
+  }
+
   .rows{
     max-width:520px;
     margin:0 auto;
@@ -228,6 +243,20 @@
   .row textarea:focus{ outline:none; }
   .row textarea::placeholder{ color:var(--ink-dim); opacity:0.6; }
 
+  .collapse-row{
+    background:linear-gradient(180deg, rgba(13,51,48,0.9), rgba(22,75,70,0.9));
+    border:1px solid rgba(22,75,70,0.6);
+    border-radius:14px;
+    padding:10px 12px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+  }
+  .collapse-row .range-label{ color:var(--ink); font-weight:700; }
+  .collapse-row .range-text{ color:var(--ink-dim); margin-left:10px; flex:1; text-align:right; }
+  .collapse-row button{ background:transparent; color:var(--ink); border:1px solid rgba(255,255,255,0.06); padding:6px 10px; border-radius:10px; }
+
   .saved-note{
     text-align:center;
     font-size:12px;
@@ -235,6 +264,16 @@
     min-height:16px;
     margin-top:14px;
   }
+
+  /* confirm modal */
+  .modal-backdrop{ position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,0.5); z-index:60; }
+  .modal-backdrop.show{ display:flex; }
+  .modal{ background:var(--card); border:1px solid var(--card-edge); padding:16px; border-radius:12px; max-width:420px; width:88%; color:var(--ink); }
+  .modal .title{ font-weight:800; margin-bottom:8px; }
+  .modal .actions{ display:flex; gap:8px; justify-content:flex-end; margin-top:12px; }
+  .modal button{ padding:8px 12px; border-radius:10px; border:none; }
+  .btn-cancel{ background:transparent; color:var(--ink-dim); }
+  .btn-confirm{ background:linear-gradient(180deg, var(--copper), var(--copper-dim)); color:#fff; font-weight:800; }
 
   .screen{ display:none; }
   .screen.show{ display:block; }
@@ -276,8 +315,22 @@
       <button type="button" class="apply-btn" id="applyRangeBtn">Aplikovať na rozsah</button>
     </div>
 
+    <div class="collapse-toggle"><button id="toggleCollapseBtn">Zlúčiť rovnaké hodiny</button></div>
+
     <div class="rows" id="rows"></div>
     <div class="saved-note" id="savedNote"></div>
+  </div>
+
+  <!-- confirm modal -->
+  <div class="modal-backdrop" id="confirmModal" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="modal" role="document">
+      <div class="title">Prepísať existujúce záznamy?</div>
+      <div class="body">Niektoré hodiny v rozsahu už obsahujú text. Chceš ich nahradiť zadaným textom?</div>
+      <div class="actions">
+        <button class="btn-cancel" id="cancelOverwriteBtn">Zrušiť</button>
+        <button class="btn-confirm" id="confirmOverwriteBtn">Prepísať</button>
+      </div>
+    </div>
   </div>
 
 <script>
@@ -296,10 +349,16 @@
   const savedNote = document.getElementById('savedNote');
   const rangeNote = document.getElementById('rangeNote');
   const applyRangeBtn = document.getElementById('applyRangeBtn');
+  const toggleCollapseBtn = document.getElementById('toggleCollapseBtn');
+  const confirmModal = document.getElementById('confirmModal');
+  const confirmOverwriteBtn = document.getElementById('confirmOverwriteBtn');
+  const cancelOverwriteBtn = document.getElementById('cancelOverwriteBtn');
 
   const DAYS_INDEX_KEY = 'hourly-log:days';
   const RANGE_KEY = 'hourly-log:range';
   let activeDate = null;
+  let collapseEnabled = true; // collapse identical consecutive hours by default
+  let pendingApplyValue = null; // used when waiting for confirmation
 
   function todayKey(){
     const d = new Date();
@@ -394,28 +453,83 @@
     ta.style.height = ta.scrollHeight + 'px';
   }
 
+  function createHourRow(h, val){
+    const row = document.createElement('div');
+    row.className = 'row';
+    const label = String(h).padStart(2,'0') + ':00';
+    row.innerHTML = `
+      <div class="hour">${label}</div>
+      <textarea data-hour="${h}" rows="1" placeholder="Čo si robil?"></textarea>
+    `;
+    const ta = row.querySelector('textarea');
+    if(val) ta.value = val;
+    autoGrow(ta);
+    ta.addEventListener('input', () => { autoGrow(ta); scheduleSave(); });
+    return row;
+  }
+
   function buildRows(from, to, entries){
     rowsEl.innerHTML = '';
     if(from > to){ [from, to] = [to, from]; }
-    const values = [];
+    // collect values for the range
+    const vals = [];
     for(let h = from; h <= to; h++){
-      const row = document.createElement('div');
-      row.className = 'row';
-      const label = String(h).padStart(2,'0') + ':00';
-      row.innerHTML = `
-        <div class="hour">${label}</div>
-        <textarea data-hour="${h}" rows="1" placeholder="Čo si robil?"></textarea>
-      `;
-      const ta = row.querySelector('textarea');
-      const val = entries && entries[h] !== undefined ? entries[h] : '';
-      if(val) ta.value = val;
-      autoGrow(ta);
-      ta.addEventListener('input', () => { autoGrow(ta); scheduleSave(); });
-      rowsEl.appendChild(row);
-      values.push(val || '');
+      const v = entries && entries[h] !== undefined ? entries[h] : '';
+      vals.push({ hour: h, val: v });
     }
+
+    if(collapseEnabled){
+      // group consecutive equal non-empty values
+      let i = 0;
+      while(i < vals.length){
+        const start = i;
+        const currentVal = vals[i].val || '';
+        i++;
+        while(i < vals.length && vals[i].val === currentVal){ i++; }
+        const end = i - 1;
+        const span = end - start + 1;
+        if(currentVal.trim() !== '' && span > 1){
+          // collapsed group
+          const groupEl = document.createElement('div');
+          groupEl.className = 'collapse-row';
+          const fromLabel = String(vals[start].hour).padStart(2,'0');
+          const toLabel = String(vals[end].hour).padStart(2,'0');
+          groupEl.innerHTML = `
+            <div style="display:flex;gap:8px;align-items:center;">
+              <div class="range-label">${fromLabel}:00–${toLabel}:00</div>
+              <div class="range-text">${currentVal}</div>
+            </div>
+            <div style="display:flex;gap:8px;">
+              <button type="button" class="expand-btn">Rozbaliť</button>
+            </div>
+          `;
+          const expandBtn = groupEl.querySelector('.expand-btn');
+          expandBtn.addEventListener('click', () => {
+            // replace collapsed group with individual hour rows
+            const fragment = document.createDocumentFragment();
+            for(let hh = vals[start].hour; hh <= vals[end].hour; hh++){
+              fragment.appendChild(createHourRow(hh, currentVal));
+            }
+            rowsEl.replaceChild(fragment, groupEl);
+          });
+          rowsEl.appendChild(groupEl);
+        } else {
+          // show individual rows
+          for(let hh = vals[start].hour; hh <= vals[end].hour; hh++){
+            const val = entries && entries[hh] !== undefined ? entries[hh] : '';
+            rowsEl.appendChild(createHourRow(hh, val));
+          }
+        }
+      }
+    } else {
+      // no collapsing — show all hours
+      for(const it of vals){
+        rowsEl.appendChild(createHourRow(it.hour, it.val));
+      }
+    }
+
     // If all values in the range are identical and non-empty, prefill the rangeNote
-    const unique = Array.from(new Set(values));
+    const unique = Array.from(new Set(vals.map(v => v.val || '')));
     if(unique.length === 1 && unique[0].trim() !== ''){
       rangeNote.value = unique[0];
     } else {
@@ -442,15 +556,68 @@
     savedNote.textContent = 'uložené ' + new Date().toLocaleTimeString('sk-SK', { hour:'2-digit', minute:'2-digit' });
   }
 
+  function showConfirmModal(){
+    confirmModal.classList.add('show');
+    confirmModal.setAttribute('aria-hidden', 'false');
+  }
+  function hideConfirmModal(){
+    confirmModal.classList.remove('show');
+    confirmModal.setAttribute('aria-hidden', 'true');
+  }
+
   // Apply the text in rangeNote to all hour rows in the current visible range
   applyRangeBtn.addEventListener('click', () => {
     const v = rangeNote.value || '';
+    // check for existing non-empty values that would be overwritten
+    const existing = [];
+    rowsEl.querySelectorAll('textarea').forEach(t => {
+      const cur = (t.value || '').trim();
+      if(cur !== '' && cur !== v.trim()) existing.push({ hour: t.dataset.hour, value: cur });
+    });
+    if(existing.length > 0){
+      // ask for confirmation
+      pendingApplyValue = v;
+      showConfirmModal();
+      return;
+    }
+    // no conflicts — apply immediately
     rowsEl.querySelectorAll('textarea').forEach(t => {
       t.value = v;
       autoGrow(t);
     });
     scheduleSave();
   });
+
+  // modal buttons
+  confirmOverwriteBtn.addEventListener('click', () => {
+    if(pendingApplyValue === null) return hideConfirmModal();
+    const v = pendingApplyValue;
+    rowsEl.querySelectorAll('textarea').forEach(t => {
+      t.value = v;
+      autoGrow(t);
+    });
+    pendingApplyValue = null;
+    hideConfirmModal();
+    scheduleSave();
+  });
+  cancelOverwriteBtn.addEventListener('click', () => { pendingApplyValue = null; hideConfirmModal(); });
+
+  // toggle collapse behaviour
+  toggleCollapseBtn.addEventListener('click', () => {
+    collapseEnabled = !collapseEnabled;
+    toggleCollapseBtn.textContent = collapseEnabled ? 'Zlúčiť rovnaké hodiny' : 'Zobraziť všetky hodiny';
+    // rebuild current range
+    buildRows(Number(fromSel.value), Number(toSel.value), getCurrentEntriesObject());
+  });
+
+  function getCurrentEntriesObject(){
+    // read entries from displayed rows (if expanded) or fall back to stored data
+    const entries = {};
+    rowsEl.querySelectorAll('textarea').forEach(t => {
+      if(t.value.trim()) entries[t.dataset.hour] = t.value;
+    });
+    return entries;
+  }
 
   async function openDay(dateStr){
     activeDate = dateStr;
@@ -487,10 +654,7 @@
   }
 
   genBtn.addEventListener('click', () => {
-    const entries = {};
-    rowsEl.querySelectorAll('textarea').forEach(t => {
-      if(t.value.trim()) entries[t.dataset.hour] = t.value;
-    });
+    const entries = getCurrentEntriesObject();
     buildRows(Number(fromSel.value), Number(toSel.value), entries);
     scheduleSave();
   });
