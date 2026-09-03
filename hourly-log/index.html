@@ -123,7 +123,7 @@
   let ranges = []; // [{start, end, text}]
 
   function todayKey(){ const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); }
-  function formatDate(dateStr){ const d = new Date(dateStr + 'T00:00:00'); return d.toLocaleDateString('sk-SK', { weekday:'long', day:'numeric', month:'long' }); }
+  function formatDate(dateStr){ const d = new Date(dateStr + 'T00:00:00'); return d.toLocaleDateString('eng-ENG', { weekday:'long', day:'numeric', month:'long' }); }
 
   const store = {
     async set(key, value){ if(window.storage && window.storage.set){ try{ await window.storage.set(key, value, false); return; }catch(e){} } try{ localStorage.setItem(key, value); }catch(e){} },
@@ -164,7 +164,7 @@
 
   let saveTimer = null;
   function scheduleSave(){ savedNote.textContent = 'Saving…'; clearTimeout(saveTimer); saveTimer = setTimeout(saveNow, 400); }
-  async function saveNow(){ await store.set('hourly-log:' + activeDate, JSON.stringify({ ranges })); if(ranges.length) await addToDaysIndex(activeDate); savedNote.textContent = 'uložené ' + new Date().toLocaleTimeString('sk-SK', { hour:'2-digit', minute:'2-digit' }); }
+  async function saveNow(){ await store.set('hourly-log:' + activeDate, JSON.stringify({ ranges })); if(ranges.length) await addToDaysIndex(activeDate); savedNote.textContent = 'Saved ' + new Date().toLocaleTimeString('eng-ENG', { hour:'2-digit', minute:'2-digit' }); }
 
   applySelectionBtn.addEventListener('click', ()=>{
     const v = (selectionInput.value || '').trim(); if(v==='') return; const selected = Array.from(rowsEl.querySelectorAll('.row.selected textarea')); if(selected.length===0) return; const hours = selected.map(t=>Number(t.dataset.hour)); const start = Math.min(...hours); const end = Math.max(...hours);
