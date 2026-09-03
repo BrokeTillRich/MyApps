@@ -422,12 +422,12 @@
           // collapsed group
           const groupEl = document.createElement('div');
           groupEl.className = 'collapse-row';
-          const fromLabel = String(vals[start].hour).padStart(2,'0');
-          const toLabel = String(vals[end].hour).padStart(2,'0');
+          const fromLabel = String(vals[start].hour); // no leading zero per request
+          const toLabel = String(vals[end].hour);
+          // show merged format like: 0:00-3:00: sleep
           groupEl.innerHTML = `
             <div style="display:flex;gap:8px;align-items:center;">
-              <div class="range-label">${fromLabel}:00–${toLabel}:00</div>
-              <div class="range-text">${currentVal}</div>
+              <div class="range-label">${fromLabel}:00-${toLabel}:00: ${currentVal}</div>
             </div>
             <div style="display:flex;gap:8px;">
               <button type="button" class="expand-btn">Rozbaliť</button>
@@ -478,6 +478,9 @@
     if(selected.length === 0) return;
     selected.forEach(t => { t.value = v; autoGrow(t); t.parentElement.classList.remove('selected'); });
     selectionInput.value = '';
+    // rebuild view so identical contiguous hours become a single merged line
+    const entries = getCurrentEntriesObject();
+    buildRows(entries);
     scheduleSave();
   });
 
