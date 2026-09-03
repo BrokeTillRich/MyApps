@@ -237,25 +237,23 @@
     <header>
       <h1>Hourly-log</h1>
     </header>
-    <button type="button" class="today-btn" id="todayBtn">+ Zapisovať dnes</button>
+    <button type="button" class="today-btn" id="todayBtn">Write</button>
     <div class="day-list" id="dayList"></div>
-    <div class="empty-list" id="emptyList">Zatiaľ nemáš žiadne staré záznamy.</div>
+    <div class="empty-list" id="emptyList">No old logs.</div>
   </div>
 
   <!-- OBRAZOVKA KONKRÉTNEHO DŇA -->
   <div class="screen" id="dayScreen">
     <header>
-      <button type="button" class="back-btn" id="backBtn">&larr; Späť</button>
-      <h1 id="dayTitle">Dnes</h1>
+      <button type="button" class="back-btn" id="backBtn">&larr; Back</button>
+      <h1 id="dayTitle">Today</h1>
       <div class="date" id="dayDateLabel"></div>
     </header>
 
     <div class="select-toolbar">
       <input id="selectionInput" placeholder="Text pre vybrané hodiny (napr. 'Spánok')">
-      <button id="applySelectionBtn">Aplikovať</button>
+      <button id="applySelectionBtn">Apply</button>
     </div>
-
-    <div class="collapse-toggle"><button id="toggleCollapseBtn">Zlúčiť rovnaké hodiny</button></div>
 
     <div class="rows" id="rows"></div>
     <div class="saved-note" id="savedNote"></div>
