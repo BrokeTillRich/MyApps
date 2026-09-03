@@ -38,6 +38,16 @@
     user-select:none;
   }
 
+  /* Backscreen: always visible under content when scrolling */
+  #backscreen{
+    position:fixed;
+    inset:0;
+    background:radial-gradient(circle at 50% 0%, var(--bg-top), var(--bg-bot) 70%);
+    z-index:0;
+    pointer-events:none;
+  }
+  .content{ position:relative; z-index:1; width:100%; }
+
   .brand{
     text-align:center;
     margin-top:10px;
@@ -220,35 +230,40 @@
 </head>
 <body>
 
-  <div class="brand">
-    <div class="kettle-mark">Kettle</div>
-    <h1 id="litersTitle">0 L</h1>
-  </div>
+  <div id="backscreen" aria-hidden="true"></div>
+  <div class="content">
 
-  <div class="vessel-wrap">
-    <div class="vessel" id="vessel">
-      <div class="water" id="water">
-        <svg viewBox="0 0 200 20" preserveAspectRatio="none">
-          <path d="M0 10 Q 25 0 50 10 T 100 10 T 150 10 T 200 10 V20 H0 Z" fill="#38c1d6"></path>
-        </svg>
-      </div>
-      <div class="readout">
-        <div class="amount"><span id="litersNum">0</span><span class="unit"> L</span></div>
-        <div class="pct" id="pctLabel">0 %</div>
+    <div class="brand">
+      <div class="kettle-mark">Kettle</div>
+      <h1 id="litersTitle">0 L</h1>
+    </div>
+
+    <div class="vessel-wrap">
+      <div class="vessel" id="vessel">
+        <div class="water" id="water">
+          <svg viewBox="0 0 200 20" preserveAspectRatio="none">
+            <path d="M0 10 Q 25 0 50 10 T 100 10 T 150 10 T 200 10 V20 H0 Z" fill="#38c1d6"></path>
+          </svg>
+        </div>
+        <div class="readout">
+          <div class="amount"><span id="litersNum">0</span><span class="unit"> L</span></div>
+          <div class="pct" id="pctLabel">0 %</div>
+        </div>
       </div>
     </div>
-  </div>
 
-  <div class="filter-note" id="filterNote"></div>
+    <div class="filter-note" id="filterNote"></div>
 
-  <div class="controls">
-    <button class="plus-btn" id="plusBtn">+1 L vody</button>
-  </div>
+    <div class="controls">
+      <button class="plus-btn" id="plusBtn">+1 L vody</button>
+    </div>
 
-  <div class="toast" id="toast">
-    <div class="title">Vymeniť filter!</div>
-    <div class="sub">Nádoba dosiahla 150 L. Čas na výmenu filtra.</div>
-    <button id="toastOk">Filter je vymenený.</button>
+    <div class="toast" id="toast">
+      <div class="title">Vymeniť filter!</div>
+      <div class="sub">Nádoba dosiahla 150 L. Čas na výmenu filtra.</div>
+      <button id="toastOk">Filter je vymenený.</button>
+    </div>
+
   </div>
 
 <script>
@@ -412,60 +427,19 @@
   });
 
   // If the Kettle page is opened as the top-level entry (not in an iframe),
-  // redirect to the root so MyApps becomes the first landing page.
-  // This helps avoid people landing directly on /Kettle/ as the site entry.
+  // always redirect to the root so MyApps becomes the first landing page.
   if (window.self === window.top) {
     try {
-      const p = location.pathname.replace(/\/+/g,'/');
-      if (p.endsWith('/Kettle') || p.endsWith('/Kettle/') || p.endsWith('/Kettle/index.html')) {
-        // Use replace so the redirect doesn't create an extra history entry.
-        location.replace('/');
-      }
+      // Use replace so the redirect doesn't create an extra history entry.
+      location.replace('/');
     } catch (err) {
       // ignore
     }
   }
 
-  // --- Back navigation fix for iOS / standalone mode ---
-  // Only install the history/popstate workaround when running as a standalone
-  // (PWA / iOS standalone) and when the document is not inside an iframe.
-  (function initBackNavigation(){
-    try {
-      if (window.self !== window.top) return; // don't touch parent history when inside iframe
-
-      const isStandalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone;
-      if (!isStandalone) return;
-
-      if (history && history.replaceState) {
-        // Determine a safe menu URL: prefer same-origin referrer if available
-        let MENU_URL = '/';
-        try {
-          const ref = document.referrer;
-          if (ref) {
-            const u = new URL(ref, location.href);
-            if (u.origin === location.origin) MENU_URL = ref;
-          }
-        } catch (err) {
-          // ignore
-        }
-
-        // Replace current history entry with a labeled 'kettle' state but keep the current URL.
-        history.replaceState({ screen: 'kettle' }, '', location.pathname + location.search + location.hash);
-
-        window.addEventListener('popstate', (e) => {
-          // Only handle popstate events that would attempt to navigate away from this state.
-          // Navigate to the menu URL when the user tries to go back.
-          try {
-            location.href = MENU_URL;
-          } catch (err) {
-            // ignore
-          }
-        }, { passive: true });
-      }
-    } catch (err) {
-      console.warn('History API not available or failed to init back navigation', err);
-    }
-  })();
+  // ensure the backscreen stays visible during touch-scroll on iOS by keeping
+  // the body background off and using the fixed #backscreen element.
+  // Nothing else required; fixed element stays put while content scrolls.
 
   load();
 </script>
