@@ -21,11 +21,14 @@
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
   html,body{height:100%;}
-  body{
+  /* move background to html to avoid white bounce areas on iOS */
+  html, body {
     margin:0;
     background:radial-gradient(circle at 50% 0%, var(--bg-top), var(--bg-bot) 70%);
     font-family:-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
     color:var(--ink);
+    -webkit-font-smoothing:antialiased;
+    -moz-osx-font-smoothing:grayscale;
     min-height:100vh;
   }
   @media (prefers-reduced-motion: reduce){ *{ transition:none !important; } }
@@ -35,6 +38,8 @@
     padding:env(safe-area-inset-top,28px) 20px calc(env(safe-area-inset-bottom,20px) + 12px);
     min-height:100vh;
     overflow-y:auto;
+    background:transparent; /* let the html background show through */
+    -webkit-overflow-scrolling: touch;
   }
   .brand{
     text-align:center;
@@ -89,7 +94,8 @@
     inset:0;
     display:none;
     flex-direction:column;
-    background:var(--bg-bot);
+    /* use the same background as the homescreen so transparent iframe content blends in */
+    background:radial-gradient(circle at 50% 0%, var(--bg-top), var(--bg-bot) 70%);
     z-index:20;
   }
   #appScreen.show{ display:flex; }
@@ -125,6 +131,7 @@
     border:none;
     width:100%;
     overflow:auto;
+    background:transparent; /* allow the parent background to show through */
   }
 </style>
 </head>
@@ -182,8 +189,7 @@
   function openApp(app, pushHistory = true){
     appTitle.textContent = app.name;
     // Resolve relative path against current location so it works when served from a path
-    const base = location.pathname.replace(/\/[^\/]*$/, '/');
-    // If path is already absolute-ish, just assign
+    // Keep iframe background transparent so the parent gradient is visible.
     appFrame.src = app.path;
     appScreen.classList.add('show');
 

@@ -363,6 +363,16 @@
     }
   };
 
+  // When loaded inside an iframe, make the page background transparent so the homescreen gradient shows through.
+  if (window.self !== window.top) {
+    document.documentElement.style.background = 'transparent';
+    document.body.style.background = 'transparent';
+    // remove extra safe-area padding so the app fits nicely inside the iframe
+    document.body.style.padding = 'env(safe-area-inset-top,8px) 0 calc(env(safe-area-inset-bottom,8px) + 8px)';
+    // allow content to scroll inside iframe
+    document.body.style.overflow = 'auto';
+  }
+
   function render(){
     const pct = Math.min(100, (liters / CAPACITY) * 100);
     water.style.height = pct + '%';
@@ -425,17 +435,6 @@
     render();
     save();
   });
-
-  // If the Kettle page is opened as the top-level entry (not in an iframe),
-  // always redirect to the root so MyApps becomes the first landing page.
-  if (window.self === window.top) {
-    try {
-      // Use replace so the redirect doesn't create an extra history entry.
-      location.replace('/');
-    } catch (err) {
-      // ignore
-    }
-  }
 
   // ensure the backscreen stays visible during touch-scroll on iOS by keeping
   // the body background off and using the fixed #backscreen element.
