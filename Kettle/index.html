@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="sk">
+<html lang="eng">
 <head>
 <script>
   // Mark whether the page is embedded early so CSS can react before rendering (avoid white flash)
@@ -415,8 +415,8 @@
     pctLabel.textContent = Math.round(pct) + ' %';
     vessel.classList.toggle('full', liters >= CAPACITY);
     plusBtn.disabled = liters >= CAPACITY;
-    plusBtn.textContent = liters >= CAPACITY ? 'Nádoba je plná' : '+1 L vody';
-    filterNote.textContent = liters >= CAPACITY ? 'Vymeniť filter!' : '';
+    plusBtn.textContent = liters >= CAPACITY ? 'Kettle is full!' : '+1 L of water';
+    filterNote.textContent = liters >= CAPACITY ? 'Change filter!' : '';
     filterNote.classList.toggle('warn', liters >= CAPACITY);
   }
 
